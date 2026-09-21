@@ -1,0 +1,1 @@
+export const siteUrl = process.env.AUNEVA_SITE_URL || "https://aunevaresearch.com";

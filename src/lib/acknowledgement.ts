@@ -1,0 +1,1 @@
+export const acknowledgementCookieName = "auneva-research-acknowledged";

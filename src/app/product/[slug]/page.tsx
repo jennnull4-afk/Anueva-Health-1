@@ -1,0 +1,20 @@
+import { notFound } from "next/navigation";
+import type { Metadata } from "next";
+import { AddToCartButton } from "@/components/add-to-cart-button";
+import { SiteFooter } from "@/components/site-footer";
+import { SiteHeader } from "@/components/site-header";
+import { getAunevaProduct } from "@/lib/catalog";
+
+export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const product = await getAunevaProduct((await params).slug);
+  if (!product) return {};
+  return { title: product.name, description: `${product.name} ${product.specification}. Offered exclusively for legitimate laboratory and research purposes.`, alternates: { canonical: `/product/${product.slug}` } };
+}
+
+export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
+  const product = await getAunevaProduct((await params).slug);
+  if (!product) notFound();
+  return <><SiteHeader /><main className="mx-auto max-w-6xl px-6 py-16 lg:px-8"><div className="grid gap-12 lg:grid-cols-[.85fr_1fr]"><div className="flex min-h-80 items-center justify-center bg-[#edf7f6]"><p className="font-serif text-5xl text-navy">AUNEVA<span className="text-teal">.</span></p></div><div><p className="eyebrow">{product.format}</p><h1 className="mt-3 font-serif text-5xl text-ink">{product.name}</h1><p className="mt-4 text-lg text-slate-600">{product.specification}</p><p className="mt-7 text-3xl font-semibold text-navy">{new Intl.NumberFormat("en-US", { style: "currency", currency: product.currency }).format(product.retailPrice)}</p><dl className="mt-8 divide-y divide-navy/10 border-y border-navy/10 text-sm"><div className="flex justify-between py-4"><dt className="text-slate-500">SKU</dt><dd>{product.sku ?? "Not provided by supplier"}</dd></div><div className="flex justify-between py-4"><dt className="text-slate-500">Quantity / size</dt><dd>{product.specification}</dd></div><div className="flex justify-between py-4"><dt className="text-slate-500">Availability</dt><dd>Supplier confirmation required</dd></div></dl><div className="mt-8 max-w-sm"><AddToCartButton product={product} /></div></div></div><section className="mt-16 grid gap-8 border-t border-navy/10 pt-12 md:grid-cols-2"><div><p className="eyebrow">Research information</p><p className="mt-3 leading-7 text-slate-600">This item is presented for legitimate laboratory and research purposes only. It is not intended for human or veterinary consumption.</p></div><div><p className="eyebrow">Testing &amp; COAs</p><p className="mt-3 leading-7 text-slate-600">Testing and Certificate of Analysis documentation is displayed only when supplied and applicable to the product lot.</p></div></section></main><SiteFooter /></>;
+}
