@@ -46,8 +46,22 @@ export interface CatalogSnapshot {
   error?: "unavailable" | "invalid_response";
 }
 
+export interface CatalogCategory {
+  slug: string;
+  name: string;
+  description: string;
+  format: ProductFormat;
+  productCount: number;
+}
+
 const formats: ProductFormat[] = ["vials", "sprays", "pens", "capsules"];
 const RETAIL_MARKUP_PERCENT = 40;
+const categoryDefinitions: Record<ProductFormat, Omit<CatalogCategory, "format" | "productCount">> = {
+  vials: { slug: "peptide-vials", name: "Peptide Vials", description: "Research products supplied in vial format." },
+  sprays: { slug: "nasal-sprays", name: "Nasal Sprays", description: "Research products supplied in nasal spray format." },
+  pens: { slug: "autoinjector-pens", name: "Autoinjector Pens", description: "Research products supplied in autoinjector pen format." },
+  capsules: { slug: "capsules", name: "Capsules", description: "Research products supplied in capsule format." },
+};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -65,8 +79,8 @@ function slugify(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
 
-function productId(format: ProductFormat, product: PrymaLabCatalogProduct) {
-  return product.sku ? `sku:${product.sku}` : `${format}:${product.product}:${product.spec}`;
+function productId(format: ProductFormat, product: PrymaLabCatalogProduct, sourceIndex: number) {
+  return `${format}:${product.sku ?? "no-sku"}:${product.product}:${product.spec}:${sourceIndex}`;
 }
 
 function retailPrice(supplierPrice: number) {
@@ -87,11 +101,11 @@ export async function getAunevaCatalog(): Promise<CatalogSnapshot> {
     return { products: [], error: "invalid_response" };
   }
 
-  const products = formats.flatMap((format) => rawCatalog[format].map((source) => {
+  const products = formats.flatMap((format) => rawCatalog[format].map((source, sourceIndex) => {
     const name = source.product;
     return {
-      id: productId(format, source),
-      slug: `${slugify(name)}-${slugify(source.spec)}-${slugify(source.sku ?? format)}`,
+      id: productId(format, source, sourceIndex),
+      slug: `${slugify(name)}-${slugify(source.spec)}-${slugify(format)}-${slugify(source.sku ?? "no-sku")}-${sourceIndex + 1}`,
       sku: source.sku,
       name,
       specification: source.spec,
@@ -107,6 +121,18 @@ export async function getAunevaCatalog(): Promise<CatalogSnapshot> {
   }));
 
   return { products, effective: rawCatalog.effective };
+}
+
+export function getCatalogCategories(products: AunevaProduct[]): CatalogCategory[] {
+  return formats.map((format) => ({
+    ...categoryDefinitions[format],
+    format,
+    productCount: products.filter((product) => product.format === format).length,
+  })).filter((category) => category.productCount > 0);
+}
+
+export function getCatalogCategory(slug: string, products: AunevaProduct[]) {
+  return getCatalogCategories(products).find((category) => category.slug === slug);
 }
 
 export async function getAunevaProduct(slug: string) {

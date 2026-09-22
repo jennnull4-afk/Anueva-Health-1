@@ -3,6 +3,7 @@ import "server-only";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
+import { Redis } from "@upstash/redis";
 import { getAunevaCatalog } from "@/lib/catalog";
 import { PrymaLabClient } from "@/lib/prymalab";
 
@@ -52,12 +53,26 @@ export interface AunevaOrder {
 }
 
 const ordersPath = path.join(process.cwd(), "data", "orders.json");
+const ordersRedisKey = "auneva:orders";
+const isVercelDeployment = process.env.VERCEL === "1";
+
+function redis() {
+  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+    throw new Error("UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN must be configured for Vercel deployments.");
+  }
+  return Redis.fromEnv();
+}
 
 async function readOrders(): Promise<AunevaOrder[]> {
+  if (isVercelDeployment) return (await redis().get<AunevaOrder[]>(ordersRedisKey)) ?? [];
   try { return JSON.parse(await readFile(ordersPath, "utf8")) as AunevaOrder[]; } catch { return []; }
 }
 
 async function saveOrders(orders: AunevaOrder[]) {
+  if (isVercelDeployment) {
+    await redis().set(ordersRedisKey, orders);
+    return;
+  }
   await mkdir(path.dirname(ordersPath), { recursive: true });
   const temporaryPath = `${ordersPath}.tmp`;
   await writeFile(temporaryPath, `${JSON.stringify(orders, null, 2)}\n`, "utf8");
