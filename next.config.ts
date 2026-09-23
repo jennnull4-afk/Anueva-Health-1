@@ -9,6 +9,11 @@ const allowedServerActionOrigins = [
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: forwardedPortDomain ? [`*.${forwardedPortDomain}`] : undefined,
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "images.unsplash.com" },
+    ],
+  },
   experimental: {
     authInterrupts: true,
     serverActions: { allowedOrigins: allowedServerActionOrigins },

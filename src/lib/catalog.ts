@@ -32,6 +32,8 @@ export interface AunevaProduct {
   specification: string;
   format: ProductFormat;
   retailPrice: number;
+  salePrice?: number;
+  saleDiscountPercent?: number;
   currency: string;
   enabled: boolean;
   featured: boolean;
@@ -55,7 +57,7 @@ export interface CatalogCategory {
 }
 
 const formats: ProductFormat[] = ["vials", "sprays", "pens", "capsules"];
-const RETAIL_MARKUP_PERCENT = 40;
+const DEFAULT_RETAIL_MARKUP_PERCENT = 75;
 const categoryDefinitions: Record<ProductFormat, Omit<CatalogCategory, "format" | "productCount">> = {
   vials: { slug: "peptide-vials", name: "Peptide Vials", description: "Research products supplied in vial format." },
   sprays: { slug: "nasal-sprays", name: "Nasal Sprays", description: "Research products supplied in nasal spray format." },
@@ -83,8 +85,23 @@ function productId(format: ProductFormat, product: PrymaLabCatalogProduct, sourc
   return `${format}:${product.sku ?? "no-sku"}:${product.product}:${product.spec}:${sourceIndex}`;
 }
 
+function money(value: number) {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+function configuredRetailMarkupPercent() {
+  const value = Number(process.env.AUNEVA_RETAIL_MARKUP ?? DEFAULT_RETAIL_MARKUP_PERCENT);
+  return Number.isFinite(value) && value >= 0 && value <= 500 ? value : DEFAULT_RETAIL_MARKUP_PERCENT;
+}
+
+function configuredSale() {
+  if (process.env.AUNEVA_SALE_ENABLED !== "true") return undefined;
+  const discount = Number(process.env.AUNEVA_SALE_DISCOUNT);
+  return Number.isFinite(discount) && discount > 0 && discount < 100 ? discount : undefined;
+}
+
 function retailPrice(supplierPrice: number) {
-  return Math.round(supplierPrice * (1 + RETAIL_MARKUP_PERCENT / 100) * 100) / 100;
+  return money(supplierPrice * (1 + configuredRetailMarkupPercent() / 100));
 }
 
 export async function getAunevaCatalog(): Promise<CatalogSnapshot> {
@@ -103,6 +120,8 @@ export async function getAunevaCatalog(): Promise<CatalogSnapshot> {
 
   const products = formats.flatMap((format) => rawCatalog[format].map((source, sourceIndex) => {
     const name = source.product;
+    const regularPrice = retailPrice(source.t1);
+    const saleDiscountPercent = configuredSale();
     return {
       id: productId(format, source, sourceIndex),
       slug: `${slugify(name)}-${slugify(source.spec)}-${slugify(format)}-${slugify(source.sku ?? "no-sku")}-${sourceIndex + 1}`,
@@ -110,7 +129,9 @@ export async function getAunevaCatalog(): Promise<CatalogSnapshot> {
       name,
       specification: source.spec,
       format,
-      retailPrice: retailPrice(source.t1),
+      retailPrice: regularPrice,
+      salePrice: saleDiscountPercent ? money(regularPrice * (1 - saleDiscountPercent / 100)) : undefined,
+      saleDiscountPercent,
       currency: rawCatalog.currency,
       enabled: true,
       featured: false,

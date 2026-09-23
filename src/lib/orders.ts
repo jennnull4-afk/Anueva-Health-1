@@ -79,7 +79,7 @@ async function saveOrders(orders: AunevaOrder[]) {
   await rename(temporaryPath, ordersPath);
 }
 
-function money(value: number) { return Math.round(value * 100) / 100; }
+function money(value: number) { return Math.round((value + Number.EPSILON) * 100) / 100; }
 
 function validateCheckout(request: CheckoutRequest) {
   if (!request.customer.name.trim() || !/^\S+@\S+\.\S+$/.test(request.customer.email) || !request.shipping.name.trim() || !request.shipping.address1.trim() || !request.shipping.city.trim() || !request.shipping.state.trim() || !request.shipping.postalCode.trim() || !request.shipping.country.trim() || !request.shipping.method.trim() || !request.researchUseAcknowledged || request.items.length === 0) throw new Error("Checkout information is incomplete.");
@@ -93,7 +93,7 @@ export async function createPendingPaymentOrder(request: CheckoutRequest) {
   const items = request.items.map((item) => {
     const product = catalog.products.find((entry) => entry.id === item.id);
     if (!product) throw new Error("A cart item is no longer available.");
-    return { productId: product.id, sku: product.sku, name: product.name, specification: product.specification, quantity: item.quantity, unitPrice: product.retailPrice };
+    return { productId: product.id, sku: product.sku, name: product.name, specification: product.specification, quantity: item.quantity, unitPrice: product.salePrice ?? product.retailPrice };
   });
   const subtotal = money(items.reduce((total, item) => total + item.unitPrice * item.quantity, 0));
   // Carrier-rate integration will replace this explicit pre-payment estimate.
