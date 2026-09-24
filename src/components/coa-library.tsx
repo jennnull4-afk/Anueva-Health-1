@@ -1,0 +1,15 @@
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+import { CatalogProductVisual } from "@/components/catalog-product-visual";
+import { CoaRequestForm } from "@/components/coa-request-form";
+
+type Product = { id: string; slug: string; name: string; specification: string; format: "vials" | "sprays" | "pens" | "capsules"; sku?: string };
+type Record = { id: string; productId: string; lot: string; title: string; supplierProvided: boolean; testingDate?: string; labName?: string; documentedResults?: string; blobUrl?: string };
+export function CoaLibrary({ products, records }: { products: Product[]; records: Record[] }) {
+  const [query, setQuery] = useState(""); const [format, setFormat] = useState("");
+  const normalized = query.toLowerCase();
+  const matched = records.filter((record) => { const product = products.find((entry) => entry.id === record.productId); return product && (!format || product.format === format) && [product.name, product.sku, record.lot, record.testingDate].filter(Boolean).join(" ").toLowerCase().includes(normalized); });
+  return <><div className="mt-8 grid gap-3 sm:grid-cols-[1fr_12rem]"><label className="text-sm font-semibold">Search product, SKU, lot, or date<input value={query} onChange={(event) => setQuery(event.target.value)} className="form-input" /></label><label className="text-sm font-semibold">Category<select value={format} onChange={(event) => setFormat(event.target.value)} className="form-input"><option value="">All categories</option>{["vials", "sprays", "pens", "capsules"].map((item) => <option key={item} value={item}>{item}</option>)}</select></label></div><div className="mt-8 grid gap-5 lg:grid-cols-[1fr_20rem]"><section className="grid gap-4 sm:grid-cols-2">{matched.map((record) => { const product = products.find((entry) => entry.id === record.productId)!; return <article key={record.id} className="overflow-hidden border border-navy/10 bg-white"><CatalogProductVisual format={product.format} className="catalog-product-image" /><div className="p-5"><p className="eyebrow">{record.supplierProvided ? "Supplier-provided document" : "Independently commissioned test"}</p><h2 className="mt-2 text-xl">{record.title}</h2><p className="mt-2 text-sm text-slate-600">{product.name} | Lot {record.lot}{record.testingDate ? ` | Tested ${record.testingDate}` : ""}</p>{record.labName && <p className="mt-2 text-sm text-slate-600">Lab: {record.labName}</p>}{record.documentedResults && <p className="mt-2 text-sm text-slate-600">{record.documentedResults}</p>}<div className="mt-4 flex flex-wrap gap-3"><Link href={`/product/${product.slug}`} className="text-link">Product</Link>{record.blobUrl ? <a href={`/api/coas/${record.id}/document`} className="text-link">View / download PDF</a> : <span className="text-sm text-slate-500">Document pending</span>}</div></div></article>; })}{matched.length === 0 && <p className="border border-dashed border-navy/20 p-5 text-slate-600 sm:col-span-2">No published COAs match these filters. Documentation is shown only for the listed product lot.</p>}</section><CoaRequestForm products={products} /></div></>;
+}

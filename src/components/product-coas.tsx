@@ -1,0 +1,9 @@
+import Link from "next/link";
+import { CoaRequestForm } from "@/components/coa-request-form";
+import { getPublishedCoas } from "@/lib/coa";
+import type { AunevaProduct } from "@/lib/catalog";
+
+export async function ProductCoas({ product, products }: { product: AunevaProduct; products: AunevaProduct[] }) {
+  const records = await getPublishedCoas(product.id);
+  return <section className="mt-16 border-t border-navy/10 pt-12"><p className="eyebrow">Testing &amp; COAs</p><h2 className="mt-2">Lot-specific documentation</h2>{records.length ? <div className="mt-6 grid gap-4 md:grid-cols-2">{records.map((record) => <article key={record.id} className="border border-navy/10 bg-white p-5"><p className="text-sm font-semibold">Lot {record.lot}</p><h3 className="mt-2 font-serif text-xl">{record.title}</h3><p className="mt-2 text-sm text-slate-600">{record.supplierProvided ? "Supplier-provided document" : "Independently commissioned test"}{record.testingDate ? ` | Tested ${record.testingDate}` : ""}</p>{record.blobUrl ? <a href={`/api/coas/${record.id}/document`} className="text-link mt-4">View / download PDF</a> : <p className="mt-4 text-sm text-slate-500">A published record exists, but its document is not currently available.</p>}</article>)}</div> : <p className="mt-4 max-w-2xl leading-7 text-slate-600">No published COA is currently available for this product. Documentation is never assumed to apply to an unknown or different lot.</p>}<div className="mt-8 max-w-xl"><CoaRequestForm products={products} selectedProductId={product.id} /></div><Link href="/coas-testing" className="text-link mt-6">Browse the COA library</Link></section>;
+}

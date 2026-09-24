@@ -53,6 +53,16 @@ footer > div:first-child > div:first-child > p:first-child {
 	font-size: 0;
 }
 
+/* Shared catalog hierarchy: compact cards and uncropped, format-level assets. */
+.catalog-product-card { display: flex; min-width: 0; flex-direction: column; overflow: hidden; border: 1px solid color-mix(in srgb, #0b3144 10%, transparent); background: #fff; box-shadow: 0 1px 2px rgb(16 38 51 / 5%); transition: border-color .2s, box-shadow .2s, transform .2s; }
+.catalog-product-card:hover { border-color: #087f82; box-shadow: 0 8px 24px rgb(16 38 51 / 10%); transform: translateY(-.125rem); }
+.catalog-product-image { aspect-ratio: 1.45; flex: none; }
+[class~="text-5xl"] { font-size: clamp(2rem, 4.5vw, 3rem); line-height: 1.08; }
+@media (min-width: 640px) { [class~="sm:text-6xl"] { font-size: clamp(2.5rem, 5vw, 3.5rem); line-height: 1.04; } }
+
+.faq-link { color: #087f82; font-weight: 700; text-decoration: underline; text-decoration-offset: .18em; }
+.faq-link:hover { color: #056b6e; }
+
 header > div > a:first-child {
 	width: 2.25rem;
 	height: 2.25rem;
