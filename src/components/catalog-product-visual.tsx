@@ -2,10 +2,10 @@ import Image from "next/image";
 import type { ProductFormat } from "@/lib/catalog";
 
 const images: Record<ProductFormat, string> = {
-  vials: "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&w=1200&q=80",
-  sprays: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80",
-  pens: "https://images.unsplash.com/photo-1576086213369-97a306d36557?auto=format&fit=crop&w=1200&q=80",
-  capsules: "https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&w=1200&q=80",
+  vials: "/vial.svg.png",
+  sprays: "/spray.svg.png",
+  pens: "/pen.svg",
+  capsules: "/capsule.svg",
 };
 
 export function CatalogProductVisual({ format, className = "" }: { format: ProductFormat; className?: string }) {
