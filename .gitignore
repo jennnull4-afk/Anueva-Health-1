@@ -33,6 +33,9 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
+/data/customers.json
+/data/account-mail.log
+/data/.account-secret
 
 # vercel
 .vercel

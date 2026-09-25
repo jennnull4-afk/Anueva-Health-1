@@ -4,8 +4,9 @@ import Link from "next/link";
 import { createContext, useContext, useEffect, useState } from "react";
 import { Minus, Plus, ShoppingBag, Trash2, X } from "lucide-react";
 import { ProductPrice } from "@/components/product-price";
+import type { ProductFormat } from "@/lib/catalog";
 
-export interface CartProduct { id: string; slug: string; name: string; specification: string; retailPrice: number; salePrice?: number; saleDiscountPercent?: number; currency: string; }
+export interface CartProduct { id: string; slug: string; name: string; specification: string; format?: ProductFormat; retailPrice: number; salePrice?: number; saleDiscountPercent?: number; currency: string; }
 export interface CartLine extends CartProduct { quantity: number; }
 interface CartContextValue { lines: CartLine[]; count: number; subtotal: number; currency: string; pricingReady: boolean; pricingError: boolean; add: (product: CartProduct) => void; setQuantity: (id: string, quantity: number) => void; remove: (id: string) => void; clear: () => void; open: () => void; }
 const CartContext = createContext<CartContextValue | null>(null);

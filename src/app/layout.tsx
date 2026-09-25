@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Image from "next/image";
+import Link from "next/link";
 import { cookies } from "next/headers";
 import { DM_Sans, Playfair_Display } from "next/font/google";
 import { acknowledgementCookieName } from "@/lib/acknowledgement";
@@ -28,7 +30,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${sans.variable} ${serif.variable}`}
     >
-      <body><CartProvider><AcknowledgementGate acknowledged={acknowledged}>{children}</AcknowledgementGate></CartProvider></body>
+      <body><a className="skip-link" href="#content">Skip to content</a><Link href="/" className="site-logo" aria-label="Auneva Health home"><Image src="/logo.svg.png" alt="" fill priority sizes="(max-width: 767px) 104px, 140px" /></Link><CartProvider><AcknowledgementGate acknowledged={acknowledged}><div id="content">{children}</div></AcknowledgementGate></CartProvider></body>
     </html>
   );
 }

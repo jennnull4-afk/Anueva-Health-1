@@ -30,11 +30,12 @@ export interface CheckoutRequest {
 
 export interface AunevaOrder {
   id: string;
+  customerId?: string;
   status: AunevaOrderStatus;
   createdAt: string;
   customer: CheckoutRequest["customer"];
   shipping: CheckoutRequest["shipping"];
-  items: Array<{ productId: string; sku?: string; name: string; specification: string; quantity: number; unitPrice: number; lot?: string }>;
+  items: Array<{ productId: string; sku?: string; name: string; specification: string; format?: "vials" | "sprays" | "pens" | "capsules"; quantity: number; unitPrice: number; lot?: string }>;
   currency: string;
   subtotal: number;
   shippingTotal: number;
@@ -86,20 +87,20 @@ function validateCheckout(request: CheckoutRequest) {
   if (request.items.some((item) => !item.id || !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 99)) throw new Error("Cart quantities are invalid.");
 }
 
-export async function createPendingPaymentOrder(request: CheckoutRequest) {
+export async function createPendingPaymentOrder(request: CheckoutRequest, customerId?: string) {
   validateCheckout(request);
   const catalog = await getAunevaCatalog();
   if (catalog.error) throw new Error("Catalog is unavailable. Please try again shortly.");
   const items = request.items.map((item) => {
     const product = catalog.products.find((entry) => entry.id === item.id);
     if (!product) throw new Error("A cart item is no longer available.");
-    return { productId: product.id, sku: product.sku, name: product.name, specification: product.specification, quantity: item.quantity, unitPrice: product.salePrice ?? product.retailPrice };
+    return { productId: product.id, sku: product.sku, name: product.name, specification: product.specification, format: product.format, quantity: item.quantity, unitPrice: product.salePrice ?? product.retailPrice };
   });
   const subtotal = money(items.reduce((total, item) => total + item.unitPrice * item.quantity, 0));
   // Carrier-rate integration will replace this explicit pre-payment estimate.
   const shippingTotal = request.shipping.method === "standard" ? 9.95 : 19.95;
   const taxTotal = 0;
-  const order: AunevaOrder = { id: `AUN-${new Date().getUTCFullYear()}-${randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase()}`, status: "Pending Payment", createdAt: new Date().toISOString(), customer: { name: request.customer.name.trim(), email: request.customer.email.trim().toLowerCase(), phone: request.customer.phone?.trim() || undefined }, shipping: { ...request.shipping, address2: request.shipping.address2?.trim() || undefined }, items, currency: catalog.products[0]?.currency ?? "USD", subtotal, shippingTotal, taxTotal, total: money(subtotal + shippingTotal + taxTotal), researchUseAcknowledgedAt: new Date().toISOString() };
+  const order: AunevaOrder = { id: `AUN-${new Date().getUTCFullYear()}-${randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase()}`, customerId, status: "Pending Payment", createdAt: new Date().toISOString(), customer: { name: request.customer.name.trim(), email: request.customer.email.trim().toLowerCase(), phone: request.customer.phone?.trim() || undefined }, shipping: { ...request.shipping, address2: request.shipping.address2?.trim() || undefined }, items, currency: catalog.products[0]?.currency ?? "USD", subtotal, shippingTotal, taxTotal, total: money(subtotal + shippingTotal + taxTotal), researchUseAcknowledgedAt: new Date().toISOString() };
   const orders = await readOrders();
   orders.push(order);
   await saveOrders(orders);
@@ -107,6 +108,15 @@ export async function createPendingPaymentOrder(request: CheckoutRequest) {
 }
 
 export async function getOrder(orderId: string) { return (await readOrders()).find((order) => order.id === orderId); }
+export async function listOrdersForCustomer(customerId: string) { return (await readOrders()).filter((order) => order.customerId === customerId).sort((first, second) => second.createdAt.localeCompare(first.createdAt)); }
+export async function claimUnassignedOrders(customerId: string, email: string) {
+  const orders = await readOrders();
+  let changed = false;
+  for (const order of orders) {
+    if (!order.customerId && order.customer.email === email.trim().toLowerCase()) { order.customerId = customerId; changed = true; }
+  }
+  if (changed) await saveOrders(orders);
+}
 
 export function customerFacingOrderStatus(status?: string) {
   switch (status?.toLowerCase()) {
